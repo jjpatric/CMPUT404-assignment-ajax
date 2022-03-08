@@ -5,7 +5,7 @@
     <meta charset="utf-8" /> 
     <meta content='width=device-width; height=device-height; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;' name='viewport' />
     <meta name="viewport" content="width=device-width" />
-    <meta name="license" content="
+    <meta name="license" content='
         Copyright 2013 Abram Hindle
         
         Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,10 +19,11 @@
         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
         See the License for the specific language governing permissions and
         limitations under the License.
-    "/>
+    '/>
     <script src="json2.js"></script>
   </head> 
-  <body bgcolor="black" height="100%" width="100%"> 
+  <body bgcolor="darkblue" height="100%" width="100%"> 
+    <button value="Clear Page" onclick="sendJSONXMLHTTPRequest('/clear', null, null)">Clear Page</button>
     <canvas id="c" width="100%" height="100%" style="-webkit-tap-highlight-color: transparent;"></canvas> 
     <script>
 var canvas = document.getElementById('c');
@@ -31,6 +32,19 @@ var context = canvas.getContext("2d");
 var W = canvas.width  = window.innerWidth-6;
 var H = canvas.height = window.innerHeight-50;
 
+var background = new Image();
+background.src = "WindowsXPHills.jpg";
+var img1 = new Image();
+img1.src = "FailedTaskSuccessfully.jpg";
+var img2 = new Image();
+img2.src = "Permissions.gif";
+var img3 = new Image();
+img3.src = "SystemUpdate.png";
+var image_dict = {
+    "img1": img1,
+    "img2": img2,
+    "img3": img3,
+};
 
 function sendJSONXMLHTTPRequest(url, objects, callback) {
     var xhr = new XMLHttpRequest();
@@ -38,8 +52,12 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
         if (xhr.readyState==4) {
             try {
                 if (xhr.status==200) {
-                    //XXX: parse some JSON from the request!
-                    //XXX: Pass the data to the callback!
+                    if (callback != null) {
+                        //XXX: parse some JSON from the request!
+                        data = JSON.parse(xhr.responseText);
+                        //XXX: Pass the data to the callback!
+                        callback(data);
+                    }
                 }
             } 
             catch(e) {
@@ -47,35 +65,39 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
             }
         }
     };
-    //XXX: POST to a URL
-    //XXX: set the mimetype and the accept headers!
-    // Remember to use application/json !
+    if (objects != null) {
+        //XXX: POST to a URL
+        xhr.open('POST', url);
+        //XXX: set the mimetype and the accept headers!
+        // Remember to use application/json !
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.setRequestHeader("Accept", "application/json");
+        xhr.send(JSON.stringify(objects));
+    } else {
+        // Get from URL, so we don't spam POST
+        xhr.open('GET', url);
+        xhr.send();
+    }
 }
-
 
 world = {};
 
 //XXX: TODO Make this prettier!
-function drawCircle(context,entity) {
+function myDrawImage(context, entity) {
     with(context) {
         beginPath();              
         lineWidth = 3;
         var x = entity["x"];
         var y = entity["y"];
         //moveTo(x,y);
-        fillStyle = entity["colour"];
-        strokeStyle = fillStyle;
-        arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
-        stroke();                                
+        image_num = entity["img_num"];
+        drawImage(image_dict[image_num], x, y);                              
     }
 }
 
 function prepEntity(entity) {
-    if (!entity["colour"]) {
-        entity["colour"] = "#FF0000";
-    }
-    if (!entity["radius"]) {
-        entity["radius"] = 50;
+    if (!entity["img_num"]) {
+        entity["img_num"] = "img1";
     }
     return entity;
 }
@@ -83,8 +105,7 @@ function prepEntity(entity) {
 function clearFrame() {
     with(context) {
 	moveTo(0,0);
-	fillStyle = "#000";
-	fillRect(0,0,W,H);
+    drawImage(background,0,0);  
     }
 
 }
@@ -94,7 +115,7 @@ function renderFrame() {
     clearFrame();
     for (var key in world) {
         var entity = world[key];
-        drawCircle(context,prepEntity(entity));
+        myDrawImage(context,prepEntity(entity));
     }
 }
 
@@ -136,9 +157,10 @@ function getPosition(e) {
 
 function addEntity(entity, data) {
     world[entity] = data;
-    drawNextFrame(); // (but should we?)
+    // drawNextFrame(); // (but should we?) no need, gets drawn on update.
     //XXX: Send a XHTML Request that updates the entity you just  modified!
-
+    const url = '/entity/' + entity;
+    sendJSONXMLHTTPRequest(url, world[entity], null);
 }
 
 var counter = 0;
@@ -186,7 +208,6 @@ mouse = (function() {
                 var y = pos[1];
 	        self.clicked = 1;
                 self.callListeners(self.mousedowners,x,y,self.clicked,e);
-                //addEntityWithoutName({'x':x,'y':y,'colour':'red'});
             }
         },
         mouseup: function(e) {
@@ -200,7 +221,6 @@ mouse = (function() {
 	        self.clicked = 0;
                 self.selected = -1;
                 self.callListeners(self.mouseuppers,x,y,self.clicked,e);
-                //addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
             }
         },
         touchstart: function(e) {
@@ -247,21 +267,25 @@ mouse = (function() {
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'img_num':'img1'});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'img_num':'img3'});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
-                          'radius':10});
+    addEntityWithoutName({'x':x,'y':y,'img_num':'img2'});
 });
 
 
 function update() {
     //XXX: TODO Get the world from the webservice using a XMLHTTPRequest
+    var callback = (new_world) => {
+        world = new_world;
+        drawNextFrame();
+    };
+    sendJSONXMLHTTPRequest('/world', null, callback);
     drawFrame();
 }
 
