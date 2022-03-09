@@ -60,8 +60,8 @@
 
  
 ** Restrictions
-   - [ ] Use Python 3.6
-   - [ ] Must run in the VM (Ubuntu 18.10)
+   - [x] Use Python 3.6
+   - [x] Must run in the VM (Ubuntu 18.10)
    - [x] License your code properly (use an OSI approved license)
      - Put your name on it!
 
