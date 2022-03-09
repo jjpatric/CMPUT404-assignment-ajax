@@ -13,8 +13,12 @@ Contributors / Licensing
 Generally everything is LICENSE'D under the Apache 2 license by Abram Hindle.
 
 
+Changes by jjpatric are LICENSE'D under Apache 2 license by Joshua Patrick.
 
 
+
+Sources
+========================
 Image Sources:
 
 
